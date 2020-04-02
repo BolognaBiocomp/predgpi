@@ -6,9 +6,9 @@ Bioinformatics. 2008 Sep 23;9:392.
 
 #### Installation and configuration
 
-Before running predgpi you need to set and export a variable named PREDGPI_ROOT to point to the deepsig installation dir:
+Before running predgpi you need to set and export a variable named PREDGPI_HOME to point to the deepsig installation dir:
 ```
-$ export PREDGPI_ROOT='/path/to/predgpi'
+$ export PREDGPI_HOME='/path/to/predgpi'
 ```
 
 #### Usage
