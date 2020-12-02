@@ -13,6 +13,7 @@ try:
 	psyco.full()
 except ImportError:
 	pass
+	
 
 def fitFPR(x):
     ''' fitFPR(x)
