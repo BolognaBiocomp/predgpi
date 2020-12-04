@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import argparse
 import os
 PREDGPI_HOME=os.environ.get('PREDGPI_HOME')
 # moduli miei
@@ -7,13 +7,13 @@ import sys,string,numpy
 dirbin=os.path.join(PREDGPI_HOME, 'GPIDAT')
 from predgpilib.hmm import HMM_IO, algo_HMM
 from predgpilib.svm import SVMLike
-
+from predgpilib import utils
 try:
-	import psyco
-	psyco.full()
+    import psyco
+    psyco.full()
 except ImportError:
-	pass
-	
+    pass
+
 
 def fitFPR(x):
     ''' fitFPR(x)
@@ -38,13 +38,13 @@ def runHMM(seq,hmm):
 
 def mksvmInput(seq,lphmm):
     ''' mksvmInput(seq,lphmm)
-		frequenze intera sequenza   (0,20)
-		frequenze degli ultimi 40   (20,40)
-		frequenze degli ultimi 20   (40,60)
-		frequenze dei primi 20      (60,80)
-		kd somma/4.5*len last   20  (80,81)
-		kd somma/4.5*len primi  21  (81,82)
-		logprob hmm degli ultimi 40 (82,83)
+        frequenze intera sequenza   (0,20)
+        frequenze degli ultimi 40   (20,40)
+        frequenze degli ultimi 20   (40,60)
+        frequenze dei primi 20      (60,80)
+        kd somma/4.5*len last   20  (80,81)
+        kd somma/4.5*len primi  21  (81,82)
+        logprob hmm degli ultimi 40 (82,83)
     '''
     # DATA that has to be use
 
@@ -98,7 +98,7 @@ def mksvmInput(seq,lphmm):
 
 def predGpipe(sequence,svm,hmmmod):
     ''' predGpipe(sequence,svm,hmmmod) '''
-    print("##",sequence[-40:])
+    #print("##",sequence[-40:])
     cut,lprob=runHMM(sequence[-40:],hmmmod)
     svminput=mksvmInput(sequence,-lprob)
     svmout=svm.predict(svminput)
@@ -148,15 +148,42 @@ def printVal(sequence,svm,hmmmod):
 ###########
 
 def main():
-	DESC = "PredGPI: Prediction of GPI-anchors in proteins"
+    DESC = "PredGPI: Prediction of GPI-anchors in proteins"
     parser = argparse.ArgumentParser(description = DESC, prog = "predgpi.py")
     parser.add_argument("-f", "--fasta", help = "The input sequences in FASTA format", dest = "fasta", required = True)
     parser.add_argument("-o", "--output", help = "The output GFF3 file name", dest="outf", required = "True")
-	parser.add_argument("-c", "--conservative", help = "Conservative omega (opt)", dest="conservative", action = "store_true")
-	ns = parser.parse_args()
+    parser.add_argument("-c", "--conservative", help = "Conservative omega (opt)", dest="conservative", action = "store_true")
+    ns = parser.parse_args()
+
+    sequences = readFasta(ns.fasta)
+    if ns.conservative:
+        hmmmod=HMM_IO.get_hmm(os.path.join(dirbin, 'PHMM.TOT.ss.mod_CSDGN'))
+    else:
+        hmmmod=HMM_IO.get_hmm(os.path.join(dirbin, 'PHMM.TOT.ss.mod'))
+    svm=SVMLike.getSVMLight(os.path.join(dirbin, 'MOD'))
+    ofs = open(ns.outf, 'w')
+    for name in sequences:
+        seq=sequences[name]
+        lprob,cut,svmout,fitFPR=predGpipe(seq,svm,hmmmod)
+        if fitFPR <= 0.01:
+            gpi = True
+            cleavage = len(seq) - cut
+            if fitFPR <= 0.0015:
+                prob = 1.0
+            elif fitFPR <= 0.005:
+                prob = 0.70
+            else:
+                prob = 0.55
+        else:
+            gpi = False
+            cleavage = "-"
+            prob = 1.0
+        utils.write_gff_output(name, seq, ofs, gpi, cleavage, prob)
+    ofs.close()
 
 
 if __name__=='__main__':
+    """
     if len(sys.argv)==1:
         print("\nUsage: GPIPEt.py fasta [-c -->conservative omega, opt] \n")
         sys.exit()
@@ -169,9 +196,10 @@ if __name__=='__main__':
         hmmmod=HMM_IO.get_hmm(os.path.join(dirbin, 'PHMM.TOT.ss.mod'))
     svm=SVMLike.getSVMLight(os.path.join(dirbin, 'MOD'))
 
-
     for name in sequences:
         seq=sequences[name]
         print(">",name)
         printVal(seq,svm,hmmmod)
         print("="*20)
+    """
+    main()
