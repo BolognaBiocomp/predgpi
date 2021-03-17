@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import os
+import json
 PREDGPI_HOME=os.environ.get('PREDGPI_HOME')
 # moduli miei
 import sys,string,numpy
@@ -151,8 +152,9 @@ def main():
     DESC = "PredGPI: Prediction of GPI-anchors in proteins"
     parser = argparse.ArgumentParser(description = DESC, prog = "predgpi.py")
     parser.add_argument("-f", "--fasta", help = "The input sequences in FASTA format", dest = "fasta", required = True)
-    parser.add_argument("-o", "--output", help = "The output GFF3 file name", dest="outf", required = "True")
+    parser.add_argument("-o", "--output", help = "The output file name", dest="outf", required = "True")
     parser.add_argument("-c", "--conservative", help = "Conservative omega (opt)", dest="conservative", action = "store_true")
+    parser.add_argument("-m", "--outfmt", help = "The output format: json or gff3 (default)", choices=['json', 'gff3'], required = False, default = "gff3")
     ns = parser.parse_args()
 
     sequences = readFasta(ns.fasta)
@@ -162,6 +164,7 @@ def main():
         hmmmod=HMM_IO.get_hmm(os.path.join(dirbin, 'PHMM.TOT.ss.mod'))
     svm=SVMLike.getSVMLight(os.path.join(dirbin, 'MOD'))
     ofs = open(ns.outf, 'w')
+    protein_jsons = []
     for name in sequences:
         seq=sequences[name]
         lprob,cut,svmout,fitFPR=predGpipe(seq,svm,hmmmod)
@@ -178,28 +181,15 @@ def main():
             gpi = False
             cleavage = "-"
             prob = 1.0
-        utils.write_gff_output(name, seq, ofs, gpi, cleavage, prob)
+        if ns.outfmt == "gff3":
+            utils.write_gff_output(name, seq, ofs, gpi, cleavage, prob)
+        else:
+            acc_json = utils.get_json_output(name, seq, gpi, cleavage, prob)
+            protein_jsons.append(acc_json)
+    if ns.outfmt == "json":
+        json.dump(protein_jsons, ofs, indent=5)
     ofs.close()
 
 
 if __name__=='__main__':
-    """
-    if len(sys.argv)==1:
-        print("\nUsage: GPIPEt.py fasta [-c -->conservative omega, opt] \n")
-        sys.exit()
-
-    sequences=readFasta(sys.argv[1])
-
-    if len(sys.argv) >2 and  sys.argv[2]=='-c':#attiva modo conservativo
-        hmmmod=HMM_IO.get_hmm(os.path.join(dirbin, 'PHMM.TOT.ss.mod_CSDGN'))
-    else:
-        hmmmod=HMM_IO.get_hmm(os.path.join(dirbin, 'PHMM.TOT.ss.mod'))
-    svm=SVMLike.getSVMLight(os.path.join(dirbin, 'MOD'))
-
-    for name in sequences:
-        seq=sequences[name]
-        print(">",name)
-        printVal(seq,svm,hmmmod)
-        print("="*20)
-    """
     main()
