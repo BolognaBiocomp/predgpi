@@ -16,7 +16,6 @@ $ export PREDGPI_HOME='/path/to/predgpi'
 To run the program:
 
 ```
-./gp.py fasta_file
+./predgpi.py -f FASTA -o OUTF -m {json|gff3}
 
 ```
-

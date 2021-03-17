@@ -1,14 +1,14 @@
 '''
 This file contains the definitions of:
 
-node_tr => transitions class 
+node_tr => transitions class
 node_em => emission class
-State => state class which contains 
+State => state class which contains
             one pointer to a node_tr object
             one pointer to a node_em object
 '''
 
-from Def import DEF
+from .Def import DEF
 import numpy as NUM
 try:
    import psyco
@@ -23,10 +23,10 @@ class node_tr:
     ''' this class implement the node transitions '''
     #__metaclass__ = psyco.compacttype
     def __init__(self,name,tr):
-        ''' __init__(self,name,tr) 
-            name = identifier, tr = transition probabilities 
+        ''' __init__(self,name,tr)
+            name = identifier, tr = transition probabilities
         '''
-        self.name=name  # "esempio '_tr1','_tr2' ...  
+        self.name=name  # "esempio '_tr1','_tr2' ...
         self.len=len(tr)
         self._tr=tr # Vettore di transizioni
         # computes the log of the transitions
@@ -36,19 +36,19 @@ class node_tr:
                 self._ln_tr[i]=NUM.log(self._tr[i])
 
     def tr(self,i):
-        ''' 
+        '''
            tr(self,i) -> transition probability between self->i-th
         '''
         #assert(i<self.len)
         return self._tr[i]
- 
+
     def ln_tr(self,i):
-        ''' 
+        '''
            ln(tr(self,i)) -> transition probability between self->i-th
         '''
         #assert(i<self.len)
         return self._ln_tr[i]
- 
+
     def set_tr(self,i,value):
         '''
           set_tr(self,i,value) sets the i-th transition of self to value
@@ -69,34 +69,34 @@ class node_em:
     ''' this class implement the node emissions '''
     #__metaclass__ = psyco.compacttype
     def __init__(self,name,em):
-        ''' __init__(self,name,em=None) 
+        ''' __init__(self,name,em=None)
             name = identifier, em = emission probabilities
         '''
-        self.name=name  # "esempio '_tr1','_tr2' ...  
+        self.name=name  # "esempio '_tr1','_tr2' ...
         self.len=len(em) # dimensione del vettore
         self._em=em # Vettore emissioni
-        # computes the log of the emissions 
+        # computes the log of the emissions
         self._ln_em=[DEF.big_negative]*self.len
         for i in range(self.len):
             if(self._em[i] > DEF.tolerance):
                 self._ln_em[i]=NUM.log(self._em[i])
 
     def em(self,i):
-        ''' 
+        '''
            em(self,i) -> transition probability between self->i-th
         '''
         #assert(i<self.len)
         return self._em[i]
 
     def ln_em(self,i):
-        ''' 
+        '''
            em(self,i) -> transition probability between self->i-th
         '''
         #assert(i<self.len)
-        return self._ln_em[i] 
+        return self._ln_em[i]
 
     def set_em(self,i,value):
-        ''' 
+        '''
            set_em(self,i,value) set the i-th emission of self to value
         '''
         #assert(i<self.len)
@@ -115,19 +115,19 @@ class State:
     ''' This class implement the state of a HMM '''
     #__metaclass__ = psyco.compacttype
     def __init__(self,name,n_tr,n_em,out_s,in_s,em_let,tied_t,tied_e,end_s,label=None):
-        ''' 
+        '''
             __init__(self,name,n_tr,n_em,out_s,in_s,em_let,tied_t,tied_e,end_s,label=None)
             name = state name
             n_tr = a node_tr object
             n_em = a node_em object
-            out_s = the state outlinks [list of the state names] 
+            out_s = the state outlinks [list of the state names]
             in_s = the state inlinks [list of the state names]
             em_let = emission letter [list in the order given by n_em]
-            tied_t = if is tied to a given transition state name of None) 
+            tied_t = if is tied to a given transition state name of None)
             tied_e = if is tied to a given emission (state name of None)
             end_s = end state flag
             label = classification attribute (None default)
-            _idxem={} dictionary name:index 
+            _idxem={} dictionary name:index
             _idxtr={} dictionary name:index
         '''
         self.name=name
@@ -140,7 +140,7 @@ class State:
         self.tied_e=tied_e
         self.end_state=end_s
         self.label=label
-        self._idxem={} 
+        self._idxem={}
         self._idxtr={}
         for name in self.out_links:
             self._idxtr[name]=self.out_links.index(name)
@@ -165,12 +165,12 @@ class State:
     def get_emissions(self):
         ''' get_emissions() -> returns the value of the emissions '''
         return self._node_em._em
- 
+
     def a(self,state):
         ''' a_{i,j} in durbin et al., 1998
            self.a(state)  -> transition probability between self->state
         '''
-        if self._idxtr.has_key(state.name):
+        if state.name in self._idxtr:
             return self._node_tr._tr[self._idxtr[state.name]]
         else:
             return(0.0)
@@ -183,23 +183,23 @@ class State:
 
     def e(self,symbol):
         ''' e_{k}(x) in durbin et al., 1998
-            self.e(symbol)  -> emission probability in state self of  'symbol' 
+            self.e(symbol)  -> emission probability in state self of  'symbol'
         '''
-        if self._idxem.has_key(symbol):
+        if symbol in self._idxem:
             return self._node_em.em(self._idxem[symbol])
         else:
             return(0.0)
 
     def eV(self,vec):
         ''' e_{k}(V) in Gigi 2002
-          self.e(V)  -> emission probability in state self of Vector 
+          self.e(V)  -> emission probability in state self of Vector
         '''
         #assert len(vec) == self._node_em.len
         return NUM.dot(self._node_em._em,vec)
 
     def set_e(self,symbol,value):
         ''' set the value of e_{k}(x) in durbin et al., 1998
-          self.e(symbol,value)  -> set self.e(symbol)=value 
+          self.e(symbol,value)  -> set self.e(symbol)=value
         '''
         self._node_em.set_em(self._idxem[symbol],value)
 
@@ -207,14 +207,14 @@ class State:
         ''' ln(a_{i,j}) in durbin et al., 1998
             self.ln_a(state)  -> log(transition probability between self->state)
         '''
-        if self._idxtr.has_key(state.name):
+        if state.name in self._idxtr:
             return(self._node_tr.ln_tr(self._idxtr[state.name]))
         else:
             return(DEF.big_negative)
 
     def ln_e(self,symbol):
         ''' ln(e_{k}(x)) in durbin et al., 1998
-            self.ln_e(symbol)  -> log(emission probability in state self of  'symbol') 
+            self.ln_e(symbol)  -> log(emission probability in state self of  'symbol')
         '''
         ce=self.e(symbol)
         if ce > 0:
@@ -224,7 +224,7 @@ class State:
 
     def ln_eV(self,vec,order=None):
         ''' ln(e_{k}(V)) gigi 2002
-            self.ln_e(V)  -> log(emission probability in state self of  'vector') 
+            self.ln_e(V)  -> log(emission probability in state self of  'vector')
         '''
         ce=self.eV(vec)
         if ce > 0:
@@ -233,4 +233,3 @@ class State:
            return(DEF.big_negative)
 
 ########################
-

@@ -10,21 +10,21 @@ In order to bould an HMM from scratch we need this package
 def get_hmm(filename):
     '''
     get_hmm(filename)
-    => return the HMM read from filename 
+    => return the HMM read from filename
     '''
     return Build_HMM(filename).get_HMM()
 
 
 def save_cPickle(hmm,file):
     ''' save the hmm into cPickle file '''
-    import cPickle
+    import _pickle as cPickle
     fs=open(file,'w')
     cPickle.dump(hmm,fs)
     fs.close()
 
 def load_cPickle(file):
     ''' load the object from file '''
-    import cPickle
+    import _pickle as cPickle
     import copy
     fs=open(file,'r')
     hmm=cPickle.load(fs)
@@ -34,7 +34,7 @@ def load_cPickle(file):
 
 ###########################################
 def parse_text(text):
-   ''' parse_text(text) legge 
+   ''' parse_text(text) legge
        il contenuto dell'hmm passato attraverso text
        che a sua volta e` derivato da un file di tipo mod
    '''
@@ -49,10 +49,10 @@ def parse_text(text):
          if (len(list)>0):
             if(list[0] == 'TRANSITION_ALPHABET' or  \
                           list[0] == 'EMISSION_ALPHABET'):
-               ret[list[0]]=list[1:] 
+               ret[list[0]]=list[1:]
             elif(list[0] == 'NAME'):
                ret[list[1]]={}
-               curr_name=list[1] 
+               curr_name=list[1]
                ret[curr_name].update({'FIX_TR':None})
                ret[curr_name].update({'FIX_EM':None})
                if(curr_name not in ret['TRANSITION_ALPHABET']):
@@ -62,7 +62,8 @@ def parse_text(text):
             elif(list[0] == 'FIX_EM'):
                ret[curr_name].update({'FIX_EM':'YES'})
             elif(list[0] == 'ENDSTATE'):
-               ret[curr_name].update({list[0]:string.atoi(list[1])})
+               #ret[curr_name].update({list[0]:string.atoi(list[1])})
+               ret[curr_name].update({list[0]:int(list[1])})
             elif(list[0] == 'LABEL'):
                ret[curr_name].update({list[0]:list[1]})
             elif(list[0] == 'EMISSION' or list[0] == 'TRANS'):
@@ -71,7 +72,7 @@ def parse_text(text):
                else:
                   tmplist=list[1:]
                   for i in range(len(tmplist)):
-                     try: tmplist[i]=string.atof(tmplist[i])
+                     try: tmplist[i]=float(tmplist[i])
                      except: pass
                ret[curr_name].update({list[0]:tmplist})
             elif(list[0] == 'LINK' or list[0]=='EM_LIST'):
@@ -80,7 +81,7 @@ def parse_text(text):
                else:
                   tmplist=list[1:]
                ret[curr_name].update({list[0]:tmplist})
-   return(ret)      
+   return(ret)
 ###########################################
 
 
@@ -93,8 +94,8 @@ def write_for_humans(hmm,filename):
     try:
        f=open(filename,'w')
     except:
-       print "Can't open ", filename
-       sys.exit() 
+       print("Can't open ", filename)
+       sys.exit()
     strPrint="";
     separator="#############################\n"
     strPrint+="# alphabets\n"
@@ -135,7 +136,7 @@ def write_for_humans(hmm,filename):
            strPrint+="EM_LIST None\n"
        strPrint+="EMISSION "
        if(hmm.states[i].tied_e):
-           strPrint+="tied "+hmm.states[i].tied_e+'\n'         
+           strPrint+="tied "+hmm.states[i].tied_e+'\n'
        elif(hmm.states[i].em_letters):
            v=hmm.states[i].get_emissions()
            for j in v:
@@ -149,10 +150,10 @@ def write_for_humans(hmm,filename):
        if(hmm.states[i].label):
            strPrint+="LABEL "+hmm.states[i].label+'\n'
        else:
-           strPrint+="LABEL None\n"  
+           strPrint+="LABEL None\n"
        strPrint+=separator
     f.write(strPrint)
-    f.close()        
+    f.close()
 
 ###########################################
 
@@ -162,14 +163,14 @@ class Build_HMM:
       ''' __init__(self,file)
           read from filename '''
       try:
-         lines = open(file).readlines() 
+         lines = open(file).readlines()
       except:
-         print "Can't open file ",file
+         print("Can't open file ",file)
       import string
-      import State 
-      import HMM
+      from . import State
+      from . import HMM
       info=parse_text(lines)
-# 
+#
       tr_al=info['TRANSITION_ALPHABET']
       if(info['EMISSION_ALPHABET'][0] == 'range'):
          em_al=[]
@@ -179,7 +180,7 @@ class Build_HMM:
          em_al=info['EMISSION_ALPHABET']
       tied_t={} # tied transitions None if not tied
       tied_e={} # tied emissions None if not tied
-      links={} # temporary list for each state 
+      links={} # temporary list for each state
       states=[]
       label={}
       endstate={}
@@ -193,7 +194,7 @@ class Build_HMM:
           in_links[name]=[]
           links[name]=[None,None]
       # create in_link information
-      for name in tr_al: 
+      for name in tr_al:
           for in_name in info[name]['LINK']:
              if(name not in in_links[in_name]):
                 in_links[in_name].append(name)
@@ -228,7 +229,7 @@ class Build_HMM:
              serial=serial + 1
              links[name][1]=obj
              tied_e[name]=None
-          if(info[name]['EMISSION']==[]):  
+          if(info[name]['EMISSION']==[]):
              links[name][1]=empty_em
              tied_e[name]=None
       for name in tr_al:
@@ -242,7 +243,7 @@ class Build_HMM:
              fix_tr[name]='YES'
          else:
              fix_tr[name]=None
-         # fixed emissions   
+         # fixed emissions
          if(info[name]['FIX_EM']):
              fix_em[name]='YES'
          else:
@@ -250,7 +251,7 @@ class Build_HMM:
          # LABELS
          if(info[name]['LABEL'] == ['None']) :
             label[name]=None
-         else: 
+         else:
             label[name]=info[name]['LABEL']
          # end States
          endstate[name]=info[name]['ENDSTATE'] # set endstates
@@ -262,35 +263,35 @@ class Build_HMM:
 
    def get_HMM(self):
       ''' get_HMM() returns the HMM '''
-      return self.hmm 
+      return self.hmm
 
-      
+
 ####################################
 
 if __name__=='__main__':
-   print "Test with file mod.mod"
-   print "read file and create an hmm"
+   print("Test with file mod.mod")
+   print("read file and create an hmm")
    hmm=Build_HMM('mod.mod').get_HMM()
-   print "inlinks (<-)  - outlinks (->) "    
+   print("inlinks (<-)  - outlinks (->) ")
    for i in range(hmm.num_states):
-      print hmm.states[i].name," -> ",hmm.states[i].out_links, " <- ",hmm.states[i].in_links
-   print "print the tied states"
+      print(hmm.states[i].name," -> ",hmm.states[i].out_links, " <- ",hmm.states[i].in_links)
+   print("print the tied states")
    for i in range(hmm.num_states):
       n=hmm.states[i]
       if(n.tied_e):
-         print "State ",n.name," has tied emission to ",n.tied_e
+         print("State ",n.name," has tied emission to ",n.tied_e)
       if(n.tied_t):
-         print "State ",n.name," has tied transitions to ",n.tied_t
-   print "###############################################################"
-   print"# state    tr_name  em_name  # state     tr_name  em_name   tying test       tying test"   
+         print("State ",n.name," has tied transitions to ",n.tied_t)
+   print("###############################################################")
+   print("# state    tr_name  em_name  # state     tr_name  em_name   tying test       tying test")
    for i in range(hmm.num_states):
       ni=hmm.states[i]
       for j in range(i,hmm.num_states):
          nj=hmm.states[j]
-         print "# <",ni.name,"> ",ni._node_tr.name,ni._node_em.name,
-         print "# <",nj.name,"> ",nj._node_tr.name,nj._node_em.name,
-         print " (TR1==TR2)? ",(hmm.states[i]._node_tr == hmm.states[j]._node_tr),
-         print " (EM1==EM2)? ",(hmm.states[i]._node_em == hmm.states[j]._node_em)
-   print "===================================\nTopo_order============================="
+         print("# <",ni.name,"> ",ni._node_tr.name,ni._node_em.name,)
+         print("# <",nj.name,"> ",nj._node_tr.name,nj._node_em.name,)
+         print(" (TR1==TR2)? ",(hmm.states[i]._node_tr == hmm.states[j]._node_tr),)
+         print(" (EM1==EM2)? ",(hmm.states[i]._node_em == hmm.states[j]._node_em))
+   print("===================================\nTopo_order=============================")
    for i in hmm.topo_order:
-       print i,hmm.state_names[i]   
+       print(i,hmm.state_names[i])

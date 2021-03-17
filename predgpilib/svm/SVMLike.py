@@ -25,7 +25,8 @@
     under the condition of preserving this text
 '''
 
-import sys,string,numpy,cPickle
+import sys,string,numpy
+import _pickle as cPickle
 try:
 	import psyco
 	psyco.full()
@@ -37,7 +38,7 @@ class SVMLike:
     ''' This class implement the prediction phase of a SVM
         based on the model of svm light.
         Presently, there are several limitation including:
-           - fixed dimension of the input vectors () 
+           - fixed dimension of the input vectors ()
            - !!! only rbf kernel implemente up to now !!!!
     '''
 
@@ -114,10 +115,10 @@ def unpacksvmVec(x,vecDim):
     nv=numpy.zeros(vecDim,float)
     v=x.split('#')[0] # if contains comment
     v=v.split()
-    first=string.atof(v[0])
+    first=float(v[0])
     for e in v[1:]:
         (idx,val)=e.split(':')
-        idx,val=string.atoi(idx),string.atof(val)
+        idx,val=int(idx),float(val)
         nv[idx-1]=val
     return first,nv
 
@@ -128,19 +129,20 @@ def getSVMLight(fname):
     i=0
     while lines[i].find('kernel type')<0:
         i+=1
-    kernel=string.atoi(lines[i].split()[0])
+    #kernel=string.atoi(lines[i].split()[0])
+    kernel=int(lines[i].split()[0])
     # parameters
     params={}
     while lines[i].find('threshold b')<0: # loop until threshold
         if lines[i].find('kernel parameter') >=0:
             v=lines[i].split()
             if v[-1] != '-u':
-               params[v[-1]]=string.atof(v[0])
+               params[v[-1]]=float(v[0])
         elif lines[i].find('highest feature index')>=0:
-            params['dim']=string.atoi(lines[i].split()[0])
+            params['dim']=int(lines[i].split()[0])
         i+=1
-     
-    b=string.atof(lines[i].split()[0])
+
+    b=float(lines[i].split()[0])
     # print "threshold found ",i
     i+=1
     ai=[]

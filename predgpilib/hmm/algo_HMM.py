@@ -22,17 +22,17 @@ except:
 # OE[t] = O[t] restricted to all emitting states
 # ON[t] = O[t] restricted to all null states (not B)
 #
-# O[t]= OE[t] U ON[t] 
-# I[t]= IE[t] U IN[t] 
+# O[t]= OE[t] U ON[t]
+# I[t]= IE[t] U IN[t]
 # ENDS = list of the states thac can end
-# 
+#
 # usually s is the current state and t is the inlinked (outlinked) state
 #
 #
 #                     States ......
-#                 B {       S       } 
+#                 B {       S       }
 #     Sequence    B |   E    |  N   |
-#                 0 |1 .....m|m+1..n|  
+#                 0 |1 .....m|m+1..n|
 #            0                      |
 #            1                      |
 #            2                      |
@@ -42,15 +42,16 @@ except:
 #
 # N[0] < N[1] ...
 #
-# the sequence of symbols (vectors) is of length L and 
+# the sequence of symbols (vectors) is of length L and
 # ranges from 0 to L-1. So there is a difference of 1 with respect
 # to the equation. This means that fo the forward/backward/viterbi etc.
-# i-position the sequence  
+# i-position the sequence
 
 
 #import hmm
 import sys
-from Def import DEF
+from .Def import DEF
+
 import numpy as NUM
 import copy
 
@@ -59,15 +60,15 @@ ARRAYINT=NUM.int
 
 
 def for_back_mat(hmm, seq, Scale=None, labels=None):
-    ''' forward/backward algorithm 
+    ''' forward/backward algorithm
         for_back_mat(hmm, seq, Scale=None, labels=None):
-        -> 
+        ->
            return(for_matrix,back_matrix,eMat,scale,log_Prob))
             for_matrix  = calculated forward matrix shape=(Seqence length+1, number of states)
             back_matrix = calculated backward matrix shape=(Seqence length+1, number of states)
             eMat        = precalculated emission probability matrix shape=(number of states,Seqence length)
             scale       = scale factor array shape=(Seqence length+1,) # if Scale!=None
-            log_Prob    = log( P(sequence | hmm) )  
+            log_Prob    = log( P(sequence | hmm) )
                           the states are in the hmm.topo_order
     '''
     L=len(seq)
@@ -83,9 +84,9 @@ def for_back_mat(hmm, seq, Scale=None, labels=None):
 def seq_log_Prob(hmm, seq, Scale=None, labels=None):
     ''' forward algorithm to compute the log_Prob of the sequence
         seq_log_Prob(hmm, seq, Scale=None, labels=None):
-        -> 
+        ->
            return
-            log_Prob    = log( P(sequence | hmm) )  
+            log_Prob    = log( P(sequence | hmm) )
                           the states are in the hmm.topo_order
     '''
     L=len(seq)
@@ -98,51 +99,51 @@ def seq_log_Prob(hmm, seq, Scale=None, labels=None):
 
 
 def eval_eMatLab(hmm, seq,labels=None):
-    ''' compute the eMat 
+    ''' compute the eMat
         eval_eMatLab(hmm, seq,labels)
         eMat[s][i] = e(s,seq[i])\delta_{label[i],label_states} is the precalculated emission probability matrix
     '''
     L=len(seq)
     E=hmm.emits # the list of the emitting states
     if(type(seq[0])!=type('String')): # this means we are dealing with vectors
-        eMat= NUM.dot(hmm.mE,NUM.array(seq).T) # remember seq[i-1] is x_i      
+        eMat= NUM.dot(hmm.mE,NUM.array(seq).T) # remember seq[i-1] is x_i
         if labels:
             eMat=eMat.T
             for i in range(L):
                 if labels[i]:
                     eMat[i]*=hmm.labelMusk[labels[i]]
-            eMat=eMat.T        
+            eMat=eMat.T
     else: # only one symbol
         e=hmm.e
         eMat=NUM.array([[0.0]*len(seq)]*len(hmm.topo_order),ARRAYFLOAT)
         for i in range(L):
             for s in E:
                 if (not labels or not labels[i-1] or hmm.states[s].label == labels[i]):
-                    eMat[s][i]= e(s,seq[i]) # remember seq[i-1] is x_i      
+                    eMat[s][i]= e(s,seq[i]) # remember seq[i-1] is x_i
     return eMat
 
 
 def _forward_mat_no_null(hmm, seq, eMat, Scale=None, labels=None):
     ''' forward algorithm which takes advantage of the precalculated emissions eMat
- 
+
         _forward_mat_no_null(hmm, seq, eMat, scale=None, labels=None)
-               WARNING: 
+               WARNING:
           assumes there are not silent/null states and there are a specific begin and end (null) state
-        -> 
+        ->
            return(for_matrix,log_Prob,scale,end_scale)
             for_matrix  = calculated forward matrix shape=(Seqence length+1, number of states)
-            log_Prob    = log( P(sequence | hmm) )  
+            log_Prob    = log( P(sequence | hmm) )
             scale       = scale factor array shape=(Seqence length+1,) # if Scale!=None
             end_scale   = the normalization factor for the end state
-                          if scale is not defined end_scale = 1.0 
+                          if scale is not defined end_scale = 1.0
                     the states are in the hmm.topo_order
     '''
     # settings
     # PLEASE NOTE THAT seq and labels has different indices
     # 	since f, b and Scale start with dummy position.
     # 	This imply that for position i we use seq[i-1] and label[i-1]
-    #	being this two list shorter 
-    L=len(seq) + 1 
+    #	being this two list shorter
+    L=len(seq) + 1
     f=NUM.array([[0.0]*hmm.num_states]*L,ARRAYFLOAT)
     if Scale != None:
         Scale=NUM.array([1.0]*L,ARRAYFLOAT)
@@ -151,14 +152,14 @@ def _forward_mat_no_null(hmm, seq, eMat, Scale=None, labels=None):
     end_scale=1.0 # the end scale factor, this is needed for the backward
     a=hmm.a # set the transition probabilities
     S=hmm.topo_order # the list of all state including B
-    IS=hmm.in_s # inlinks 
+    IS=hmm.in_s # inlinks
     IE=hmm.in_s_e # inlinks from emittings only
     IN=hmm.in_s_n # inlinks from nulls only
     ENDS=hmm.end_s # end states
     B=0 # begin state
-    P=0.0 # P(seq) 
+    P=0.0 # P(seq)
     ###### START PHASE
-    f[0][B]=1.0 
+    f[0][B]=1.0
     ###### RECURRENCE PHASE for 1 to L-1
     for i in range(1,L):
         # S -> E
@@ -172,7 +173,7 @@ def _forward_mat_no_null(hmm, seq, eMat, Scale=None, labels=None):
                 sys.stderr.write('Error in '+str(i)+'\n')
                 sys.exit(-1)
 
-    ###### END PHASE 
+    ###### END PHASE
     for s in hmm.end_s_n:
         for t in hmm.emits:
             f[L-1][s]+=a(t,s)*f[L-1][t]
@@ -184,30 +185,30 @@ def _forward_mat_no_null(hmm, seq, eMat, Scale=None, labels=None):
         lP=__safe_log(P)+ NUM.sum(NUM.log(Scale))
     else:
         lP=__safe_log(P)
-    
+
     return(f,lP,Scale,end_scale)
 
 ######################################
 
 def _forward_mat(hmm, seq, eMat, Scale=None, labels=None):
     ''' forward algorithm which takes advantage of the precalculated emissions eMat
- 
+
         _forward_mat(hmm, seq, eMat, scale=None, labels=None)
-        -> 
+        ->
            return(for_matrix,log_Prob,scale,end_scale)
             for_matrix  = calculated forward matrix shape=(Seqence length+1, number of states)
-            log_Prob    = log( P(sequence | hmm) )  
+            log_Prob    = log( P(sequence | hmm) )
             scale       = scale factor array shape=(Seqence length+1,) # if Scale!=None
             end_scale   = the normalization factor for the end state
-                          if scale is not defined end_scale = 1.0 
+                          if scale is not defined end_scale = 1.0
                     the states are in the hmm.topo_order
     '''
     # settings
     # PLEASE NOTE THAT seq and labels has different indices
     # 	since f, b and Scale start with dummy position.
     # 	This imply that for position i we use seq[i-1] and label[i-1]
-    #	being this two list shorter 
-    L=len(seq) + 1 
+    #	being this two list shorter
+    L=len(seq) + 1
     f=NUM.array([[0.0]*hmm.num_states]*L,ARRAYFLOAT)
     if Scale != None:
         Scale=NUM.array([1.0]*L,ARRAYFLOAT)
@@ -216,24 +217,24 @@ def _forward_mat(hmm, seq, eMat, Scale=None, labels=None):
     end_scale=1.0 # the end scale factor, this is needed for the backward
     a=hmm.a # set the transition probabilities
     E=hmm.emits # the list of the emitting states
-    N=hmm.nulls # the list of the silent state 
+    N=hmm.nulls # the list of the silent state
     S=hmm.topo_order # the list of all state including B
-    IS=hmm.in_s # inlinks 
+    IS=hmm.in_s # inlinks
     IE=hmm.in_s_e # inlinks from emittings only
     IN=hmm.in_s_n # inlinks from nulls only
     ENDS=hmm.end_s # end states
     B=0 # begin state
-    P=0.0 # P(seq) 
+    P=0.0 # P(seq)
     ###### START PHASE
-    f[0][B]=1.0 
-    for s in E: 
+    f[0][B]=1.0
+    for s in E:
         f[0][s]=0.0
-    # from B -> N 
+    # from B -> N
     for s in N:
         f[0][s]=a(B,s)
     # from N -> N
     for s in N:
-        for t in IN[s]: 
+        for t in IN[s]:
             f[0][s]+=f[0][t]*a(t,s)
     # if we use the scale factor
     #if(Scale != None):
@@ -247,16 +248,16 @@ def _forward_mat(hmm, seq, eMat, Scale=None, labels=None):
             # update done only if labels are not used
             # or labels are free == None
             # or labels corresponds (labels[i-1] correspond position i)
-	    for t in IS[s]:
+            for t in IS[s]:
                 f[i][s]+=a(t,s)*f[i-1][t]
-	    f[i][s]*= eMat[s][i-1] # remember seq[i-1] is x_i 	
+            f[i][s]*= eMat[s][i-1] # remember seq[i-1] is x_i
         # E -> N . Note the i-level is the same
         for s in N:
-	    for t in IE[s]:
+            for t in IE[s]:
                 f[i][s]+=a(t,s)*f[i][t]
         # N -> N . Note the i-level is the same
         for s in N:
-	    for t in IN[s]:
+            for t in IN[s]:
                 f[i][s]+=a(t,s)*f[i][t]
         # if we use the scale factor
         #if(Scale != None):
@@ -267,7 +268,7 @@ def _forward_mat(hmm, seq, eMat, Scale=None, labels=None):
             sys.stderr.write('Error in '+str(i)+'\n')
             sys.exit(-1)
 
-    ###### END PHASE 
+    ###### END PHASE
     for s in ENDS:
         P+=f[L-1][s] # lst index is L-1 [0,L-1]
     #if(Scale != None):
@@ -275,29 +276,29 @@ def _forward_mat(hmm, seq, eMat, Scale=None, labels=None):
     lP=__safe_log(P)+ NUM.sum(NUM.log(Scale))
     #else:
     #    lP=__safe_log(P)
-    
+
     return(f,lP,Scale,end_scale)
 ######################################
 
 def _backward_mat_no_null(hmm, seq, eMat, Scale=None, end_scale=1.0, labels=None):
-    ''' backward algorithm which takes advantage of the precalculated emission probabilities eMat 
+    ''' backward algorithm which takes advantage of the precalculated emission probabilities eMat
         This function must not be called before _forward
         _backward_mat_no_null(hmm, seq, eMat, Scale=None, end_scale, labels=None)
-               WARNING: 
+               WARNING:
           assumes there are not silent/null states and there are a specific begin and end (null) state
-        -> returns (back_matrix) 
+        -> returns (back_matrix)
             back_matrix = calculated backward matrix shape=(Seqence length+1, number of states)
     '''
     # settings
     # PLEASE NOTE THAT seq and labels has different indices
     #   since f, b and Scale start with dummy position.
     #   This imply that for position i we use seq[i-1] and label[i-1]
-    #   being this two list shorter 
+    #   being this two list shorter
     L=len(seq)+1
     b=NUM.array([[0.0]*hmm.num_states]*L,ARRAYFLOAT)
     a=hmm.a # set the transition probabilities
     E=hmm.emits # the list of the emitting states
-    N=hmm.nulls # the list of the silent state 
+    N=hmm.nulls # the list of the silent state
     S=hmm.topo_order # the list of all state including B
     ENDS=hmm.end_s # end states
     ENDE=hmm.end_s_e # emitting end states
@@ -309,7 +310,7 @@ def _backward_mat_no_null(hmm, seq, eMat, Scale=None, end_scale=1.0, labels=None
     ###### START PHASE
     for s in ENDS:
         b[L-1][s]=1.0/end_scale
-    # E <- N 
+    # E <- N
     for t in ENDN:
         for s in E:
             b[L-1][s]=b[L-1][t]*a(s,t)
@@ -334,22 +335,22 @@ def _backward_mat_no_null(hmm, seq, eMat, Scale=None, end_scale=1.0, labels=None
 ######################################
 
 def _backward_mat(hmm, seq, eMat, Scale=None, end_scale=1.0, labels=None):
-    ''' backward algorithm which takes advantage of the precalculated emission probabilities eMat 
+    ''' backward algorithm which takes advantage of the precalculated emission probabilities eMat
         This function should not be called before _forward
         _backward_mat(hmm, seq, eMat, Scale=None, end_scale, labels=None)
-        -> returns (back_matrix) 
+        -> returns (back_matrix)
             back_matrix = calculated backward matrix shape=(Seqence length+1, number of states)
     '''
     # settings
     # PLEASE NOTE THAT seq and labels has different indices
     #   since f, b and Scale start with dummy position.
     #   This imply that for position i we use seq[i-1] and label[i-1]
-    #   being this two list shorter 
+    #   being this two list shorter
     L=len(seq)+1
     b=NUM.array([[0.0]*hmm.num_states]*L,ARRAYFLOAT)
     a=hmm.a # set the transition probabilities
     E=hmm.emits # the list of the emitting states
-    N=hmm.nulls # the list of the silent state 
+    N=hmm.nulls # the list of the silent state
     RN=copy.deepcopy(hmm.nulls)
     RN.reverse() # the list of the silent state in reversed order
     S=hmm.topo_order # the list of all state including B
@@ -375,7 +376,7 @@ def _backward_mat(hmm, seq, eMat, Scale=None, end_scale=1.0, labels=None):
         if s not in ENDN:
             for t in ON[s]:
                 b[L-1][s]+=b[L-1][t]*a(s,t)
-    # E <- N 
+    # E <- N
     for s in E:
         # update done only if labels are not used
         # or labels are free == None
@@ -403,13 +404,13 @@ def _backward_mat(hmm, seq, eMat, Scale=None, end_scale=1.0, labels=None):
             # E(i) <- E(i+1)
             for t in OE[s]:
                 b[i][s]+=a(s,t)*b[i+1][t]*eMat[t][i] # seq[i] is postion i+1!!
-            # E(i) <- N(i) 
+            # E(i) <- N(i)
             for t in ON[s]:
                 b[i][s]+=b[i][t]*a(s,t)
         if(Scale != None):
             b[i]/=Scale[i]
 
-    ###### END PHASE 
+    ###### END PHASE
 
     for s in RN:
         for t in OE[s]: # N <- E
@@ -436,26 +437,26 @@ def _backward_mat(hmm, seq, eMat, Scale=None, end_scale=1.0, labels=None):
 ######################################
 
 def viterbi(hmm, seq, returnLogProb=None, labels=None):
-    ''' viterbi algorithm 
+    ''' viterbi algorithm
         viterbi(hmm, seq,  returnLogProb=None, labels=None):
-        -> 
+        ->
 	   if returnLogProb == None:
                   return(best_state_path, best_path_score)
            else:
 	          return(best_state_path, pest_path_score, best_path_values)
     '''
-    if returnLogProb: 
+    if returnLogProb:
         return _viterbi(hmm, seq, labels)
     else:
         best_state_path, pest_path_score, best_path_values=_viterbi(hmm, seq, labels)
-	return best_state_path, pest_path_score
+        return best_state_path, pest_path_score
 ######################################
 
- 
+
 def viterbi_label(hmm, seq, labels=None):
-    ''' viterbi algorithm 
+    ''' viterbi algorithm
         viterbi_label(hmm, seq, labels):
-        -> 
+        ->
            return(best_LABEL_path)
            best_LABEL_path = the path containing the labels of the best states
     '''
@@ -469,20 +470,20 @@ def viterbi_label(hmm, seq, labels=None):
 
 
 def _viterbi(hmm, seq, labels=None):
-    ''' viterbi algorithm 
+    ''' viterbi algorithm
         _viterbi(hmm, seq, labels=None):
-        -> 
+        ->
            return(best_state_path, val, pathVal)
            best_state_path =  the best path
            val = the score of the best path
-	   pathVal = the list with the log of the emission probabilities for each 
+	   pathVal = the list with the log of the emission probabilities for each
 	             selected state. If null the value is DEF.big_negative
     '''
     # settings
     # PLEASE NOTE THAT seq and labels have different indices
     # 	since f, b and Scale start with dummy position.
     # 	This imply that for position i we use seq[i-1] and label[i-1]
-    #	being this two list shorter 
+    #	being this two list shorter
     L=len(seq)+1
     lf=NUM.array([[DEF.big_negative]*hmm.num_states]*L,ARRAYFLOAT)
     bkt=NUM.array([[0]*hmm.num_states]*L,ARRAYINT)
@@ -492,22 +493,22 @@ def _viterbi(hmm, seq, labels=None):
     else: # only one symbol
         ln_e=hmm.ln_e
     E=hmm.emits # the list of the emitting states
-    N=hmm.nulls # the list of the silent state 
+    N=hmm.nulls # the list of the silent state
     S=hmm.topo_order # the list of all state including B
-    IS=hmm.in_s # inlinks 
+    IS=hmm.in_s # inlinks
     IE=hmm.in_s_e # inlinks from emittings only
     IN=hmm.in_s_n # inlinks from nulls only
     ENDS=hmm.end_s # end states
     B=0 # begin state
     ###### START PHASE
-    lf[0][B]=0.0 
+    lf[0][B]=0.0
     bkt[0][B]=-1
-    for s in E: 
+    for s in E:
         lf[0][s]=DEF.big_negative
         bkt[0][s]=B
     # from N+B -> N
     for s in N:
-        for t in IN[s]: # IN[s] contains B too  
+        for t in IN[s]: # IN[s] contains B too
             if(lf[0][s]<ln_a(t,s)+lf[0][t]):
                 lf[0][s]=ln_a(t,s)+lf[0][t]
                 bkt[0][s]=t
@@ -518,49 +519,49 @@ def _viterbi(hmm, seq, labels=None):
             # update done only if labels are not used
             # or labels corresponds (labels[i-1] is position i !!)
             if(not labels or not labels[i-1] or hmm.states[s].label == labels[i-1]):
-	        for t in IS[s]:
-		    ltmp=ln_a(t,s)+lf[i-1][t]
-		    if(lf[i][s]<ltmp):			
+                for t in IS[s]:
+                    ltmp=ln_a(t,s)+lf[i-1][t]
+                    if(lf[i][s]<ltmp):
                         lf[i][s]=ltmp
                         bkt[i][s]=t
                 lf[i][s]+=ln_e(s,seq[i-1]) # seq[i-1] is position i!!
         # E -> N . Note the i-level is the same
         for s in N:
-	    for t in IE[s]:
+            for t in IE[s]:
                 ltmp=ln_a(t,s)+lf[i][t]
-                if(lf[i][s]<ltmp):			
+                if(lf[i][s]<ltmp):
                     lf[i][s]=ltmp
                     bkt[i][s]=t
         # N -> N . Note the i-level is the same
         for s in N:
-	    for t in IN[s]:
+            for t in IN[s]:
                 ltmp=ln_a(t,s)+lf[i][t]
-                if(lf[i][s]<ltmp):			
+                if(lf[i][s]<ltmp):
                     lf[i][s]=ltmp
                     bkt[i][s]=t
-    ###### END PHASE 
+    ###### END PHASE
     bestval=DEF.big_negative
     pback=None
     for s in ENDS:
-        if(bestval<lf[L-1][s]):	    
-      	    bestval=lf[L-1][s]
-            pback=s	
+        if(bestval<lf[L-1][s]):
+            bestval=lf[L-1][s]
+            pback=s
     if not pback:
-        print "ERRORRRRR!!!"
+        print("ERRORRRRR!!!")
     ###### BACKTRACE
     logProbPath=[]
     best_path=[]
     i=L-1
     while i >= 0 and pback != B:
         best_path.insert(0,pback)
-        ptmp=bkt[i][pback]	
-	if pback in hmm.emits:
-	   logProbPath.insert(0, ln_e(pback,seq[i-1]))
-           i-=1
-	else:
-	   logProbPath.insert(0, DEF.big_negative)
+        ptmp=bkt[i][pback]
+        if pback in hmm.emits:
+            logProbPath.insert(0, ln_e(pback,seq[i-1]))
+            i-=1
+        else:
+            logProbPath.insert(0, DEF.big_negative)
         pback=ptmp
-	    
+
     return(best_path,bestval,logProbPath)
 ######################################
 
@@ -568,10 +569,10 @@ def _viterbi(hmm, seq, labels=None):
 def ap_viterbi(hmm, seq, label_list=None, labels=None, Scale='y', returnProbs=None):
     ''' viterbi algorithm on the a posteriori
         if label_list == None : the state path is returned
-        else :          the label path is returned 
-        
+        else :          the label path is returned
+
         labels sequence labelling # this is used in the forward/backward
-        Scale != None we use the scaling  
+        Scale != None we use the scaling
         -> if returnProbs == None
              return(best_state_path,val)
              best_state_path = the best path
@@ -581,34 +582,34 @@ def ap_viterbi(hmm, seq, label_list=None, labels=None, Scale='y', returnProbs=No
              best_state_path = the best path
              val = the score of the best path
 	     returnProbs = list of the Probability for each state in best_state_path
-	     
+
     '''
     # settings
     L=len(seq)+1
     lf=NUM.array([[DEF.big_negative]*hmm.num_states]*L,ARRAYFLOAT)
     bkt=NUM.array([[-1]*hmm.num_states]*L,ARRAYINT)
     E=hmm.emits # the list of the emitting states
-    N=hmm.nulls # the list of the silent state 
+    N=hmm.nulls # the list of the silent state
     S=hmm.topo_order # the list of all state including B
-    IS=hmm.in_s # inlinks 
+    IS=hmm.in_s # inlinks
     IE=hmm.in_s_e # inlinks from emittings only
     IN=hmm.in_s_n # inlinks from nulls only
     ENDS=hmm.end_s # end states
     B=0 # begin state
     #
     # compute the farward and backward
-    (f,b,eMat,Scale,lP)=for_back_mat(hmm,seq,Scale,labels) 
+    (f,b,eMat,Scale,lP)=for_back_mat(hmm,seq,Scale,labels)
     # test if label-path or state-path should be returned
     if label_list:
         (ap,apl,best_path)=_aposteriori(hmm, lP, f, b, Scale, hmm.label_list)
         statelabel={}
-        for s in E: 
+        for s in E:
             statelabel[s]=hmm.label_list.index(hmm.states[s].label)
-        # create the local apos function 
-	apos=lambda i,s,y=apl,st=statelabel: y[i][st[s]] 
+        # create the local apos function
+        apos=lambda i,s,y=apl,st=statelabel: y[i][st[s]]
     else:
         (ap,apl,best_path)=_aposteriori(hmm, lP, f, b, Scale)
-        # create the local apos function 
+        # create the local apos function
         apos=lambda i,s,y=ap: y[i][s]
     ###### START PHASE
     lf[0][B]=0.0
@@ -619,7 +620,7 @@ def ap_viterbi(hmm, seq, label_list=None, labels=None, Scale='y', returnProbs=No
     # from N+B -> N | ARE all equivalent to Begin
     # we are assuming a null can have only a null inlink
     for s in N:
-        for t in IN[s]: # IN[s] inludes also B (if this is possible)  
+        for t in IN[s]: # IN[s] inludes also B (if this is possible)
             if lf[0][t] > lf[0][s]: # there exitsts some inlinks or B
                 lf[0][s]=lf[0][t]
                 bkt[0][s]=t
@@ -649,7 +650,7 @@ def ap_viterbi(hmm, seq, label_list=None, labels=None, Scale='y', returnProbs=No
                 if(lf[i][s]<ltmp):
                     lf[i][s]=ltmp
                     bkt[i][s]=t
-    ###### END PHASE 
+    ###### END PHASE
     bestval=DEF.big_negative
     pback=None
     for s in ENDS:
@@ -657,7 +658,7 @@ def ap_viterbi(hmm, seq, label_list=None, labels=None, Scale='y', returnProbs=No
             bestval=lf[L-1][s]
             pback=s
     if not pback:
-        print "ERRORRRRR!!!"
+        print("ERRORRRRR!!!")
     ###### BACKTRACE
     Probs=[]
     best_path=[]
@@ -666,12 +667,12 @@ def ap_viterbi(hmm, seq, label_list=None, labels=None, Scale='y', returnProbs=No
 	#print  pback, i
 	#print apos(i,pback)
         if not label_list:
-	     Probs.insert(0,apos(i, pback))
+            Probs.insert(0,apos(i, pback))
         best_path.insert(0,pback)
         ptmp=bkt[i][pback]
         if pback in hmm.emits:
            if label_list:
-               Probs.insert(0,apos(i, pback))   
+               Probs.insert(0,apos(i, pback))
            i-=1
         pback=ptmp
     if returnProbs:
@@ -682,12 +683,12 @@ def ap_viterbi(hmm, seq, label_list=None, labels=None, Scale='y', returnProbs=No
 ######################################
 
 def maxAcc_decoder(hmm, seq, returnProbs=None):
-    ''' decoding algorithm by 
+    ''' decoding algorithm by
         as described by
         Lukas Kall, Anders Krogh, and Erik L. L. Sonnhammer
         An HMM posterior decoder for sequence feature prediction that includes homology information
         viterbi algorithm on the a posteriori.
-        Bioinformatics, Jun 2005; 21: i251 - i257. 
+        Bioinformatics, Jun 2005; 21: i251 - i257.
         -> if returnProbs == None
              return(best_state_path,val)
              best_state_path = the best path
@@ -703,23 +704,23 @@ def maxAcc_decoder(hmm, seq, returnProbs=None):
     lf=NUM.array([[DEF.big_negative]*hmm.num_states]*L,ARRAYFLOAT)
     bkt=NUM.array([[-1]*hmm.num_states]*L,ARRAYINT)
     E=hmm.emits # the list of the emitting states
-    N=hmm.nulls # the list of the silent state 
+    N=hmm.nulls # the list of the silent state
     S=hmm.topo_order # the list of all state including B
-    IS=hmm.in_s # inlinks 
+    IS=hmm.in_s # inlinks
     IE=hmm.in_s_e # inlinks from emittings only
     IN=hmm.in_s_n # inlinks from nulls only
     ENDS=hmm.end_s # end states
     B=0 # begin state
     #
     # compute the farward and backward
-    (f,b,eMat,Scale,lP)=for_back_mat(hmm,seq,Scale='Yes',labels=None) 
-    # 
+    (f,b,eMat,Scale,lP)=for_back_mat(hmm,seq,Scale='Yes',labels=None)
+    #
     (ap,apl,best_path)=_aposteriori(hmm, lP, f, b, Scale, hmm.label_list)
     statelabel={}
-    for s in E: 
+    for s in E:
         statelabel[s]=hmm.label_list.index(hmm.states[s].label)
-    # create the local apos function 
-    apos=lambda i,s,y=apl,st=statelabel: y[i][st[s]] 
+    # create the local apos function
+    apos=lambda i,s,y=apl,st=statelabel: y[i][st[s]]
     ###### START PHASE
     lf[0][B]=0.0
     bkt[0][B]=-1
@@ -729,7 +730,7 @@ def maxAcc_decoder(hmm, seq, returnProbs=None):
     # from N+B -> N | ARE all equivalent to Begin
     # we are assuming a null can have only a null inlink
     for s in N:
-        for t in IN[s]: # IN[s] inludes also B (if this is possible)  
+        for t in IN[s]: # IN[s] inludes also B (if this is possible)
             if lf[0][t] > lf[0][s]: # there exitsts some inlinks or B
                 lf[0][s]=lf[0][t]
                 bkt[0][s]=t
@@ -760,7 +761,7 @@ def maxAcc_decoder(hmm, seq, returnProbs=None):
                 if(lf[i][s]<ltmp):
                     lf[i][s]=ltmp
                     bkt[i][s]=t
-    ###### END PHASE 
+    ###### END PHASE
     bestval=DEF.big_negative
     pback=None
     for s in ENDS:
@@ -768,7 +769,7 @@ def maxAcc_decoder(hmm, seq, returnProbs=None):
             bestval=lf[L-1][s]
             pback=s
     if not pback:
-        print "ERRORRRRR!!!"
+        print("ERRORRRRR!!!")
     ###### BACKTRACE
     best_path=[]
     Probs=[]
@@ -776,7 +777,7 @@ def maxAcc_decoder(hmm, seq, returnProbs=None):
     while i >= 0 and pback != B:
         ptmp=bkt[i][pback]
         if pback in hmm.emits:
-	    Probs.insert(0,apos(i, pback))
+            Probs.insert(0,apos(i, pback))
             best_path.insert(0,hmm.states[pback].label)
             i-=1
         pback=ptmp
@@ -789,19 +790,19 @@ def maxAcc_decoder(hmm, seq, returnProbs=None):
 
 
 def sum_aposteriori(hmm,seq,Scale=None, label_list=[], labels=None):
-    ''' a posteriori decoding algorithm 
-        sum_aposteriori(hmm,Scale=None, label_list=[]) 
+    ''' a posteriori decoding algorithm
+        sum_aposteriori(hmm,Scale=None, label_list=[])
         Scale the scaling vector
         label_list the list of all possible labels
         labels is the sequence labelling used in the forward/backward phases
-        -> 
+        ->
            return(aposteriori_mat,best_path,logProb)
            if label_list != [] then
               best_path contains the best label
                         for each sequence position
                         and aposteriori_mat the corrisponding probabilities
            else
-              best_path contains the name of the best state 
+              best_path contains the name of the best state
                         for each sequence position
                         and aposteriori_mat the corrisponding probabilities
     '''
@@ -821,7 +822,7 @@ def sum_aposteriori(hmm,seq,Scale=None, label_list=[], labels=None):
 ###################################################################
 
 def _aposteriori(hmm, lP, f, b, Scale=None, label_list=[]):
-    ''' a posteriori decoding algorithm 
+    ''' a posteriori decoding algorithm
         _aposteriori(hmm, lP, f, b, Scale=None, label_list=[]):
         lP sequence log(probability),
         f forward matrix
@@ -831,21 +832,21 @@ def _aposteriori(hmm, lP, f, b, Scale=None, label_list=[]):
         NOTE: we consider only the emitting states
         and this function makes explicitly use of the fact that
         the Beginning state is always in the first (0) position
-        and it is always SILENT (null)! 
-        -> 
+        and it is always SILENT (null)!
+        ->
            return(aposteriori_mat,apost_label_mat,best_path)
            if label_list != [] then
               best_path contains the index of the best label
                         for each sequence position
            else
-              best_path contains the index of the best state 
+              best_path contains the index of the best state
                         for each sequence position
     '''
     # settings
     # PLEASE NOTE THAT seq and labels has different indices
     #   since f, b and Scale start with dummy position.
     #   This imply that for position i we use seq[i-1] and labels[i-1]
-    #   being this two list shorter 
+    #   being this two list shorter
 #    assert len(f) == len(b)
     P=__safe_log(lP)
     L=len(f)
@@ -857,10 +858,10 @@ def _aposteriori(hmm, lP, f, b, Scale=None, label_list=[]):
     apl=NUM.array([[0.0]*num_labels]*L,ARRAYFLOAT)
     if(Scale !=None ):
         for i in range(L):
-            ap[i]=f[i]*b[i]*Scale[i] # WARNING vector multiplications  
+            ap[i]=f[i]*b[i]*Scale[i] # WARNING vector multiplications
     else:
         for i in range(L):
-            ap[i]=f[i]*b[i]/P        # WARNING vector multiplications  
+            ap[i]=f[i]*b[i]/P        # WARNING vector multiplications
     # find the aposteriori of the labels
     if(label_list):
         for i in range(L):
@@ -874,7 +875,7 @@ def _aposteriori(hmm, lP, f, b, Scale=None, label_list=[]):
     else:
         for i in range(1,L):
             best_path[i]=ap.tolist()[i].index(max(ap[i][start_emit:first_null]))
-     
+
     # please note the splicing of the B state for the path
     return (ap,apl,best_path[1:])
 
@@ -885,10 +886,10 @@ def one_best_AK(hmm, seq, Scale=None):
         one_best_AK(hmm, seq, Scale=None) as we understood from Anders Krogh paper
         (Two methods for improving performance of a HMM and their application for gene finding
          ISMB 1997 179-186)
-        
+
         o WARNING: the program may not work properly if there are null states different from
-                   begin and end        
-        -> 
+                   begin and end
+        ->
            return(best_label_path,bestval)
             bestval = the value of the best label path
             best_label_path = the best label path (as string og labels)
@@ -897,7 +898,7 @@ def one_best_AK(hmm, seq, Scale=None):
     # PLEASE NOTE THAT seq and labels has different indices
     #   since f, b and Scale start with dummy position.
     #   This imply that for position i we use seq[i-1] and label[i-1]
-    #   being this two list shorter 
+    #   being this two list shorter
     eMat=eval_eMatLab(hmm, seq)
     L=len(seq) + 1
     hypSet=[set(),set()]  # the all hypotheses i,i+1
@@ -909,19 +910,19 @@ def one_best_AK(hmm, seq, Scale=None):
     end_scale=1.0 # the end scale factor, this is needed for the backward
     a=hmm.a # set the transition probabilities
     E=hmm.emits # the list of the emitting states
-    N=hmm.nulls # the list of the silent state 
+    N=hmm.nulls # the list of the silent state
     S=hmm.topo_order # the list of all state including B
-    IS=hmm.in_s # inlinks 
+    IS=hmm.in_s # inlinks
     IE=hmm.in_s_e # inlinks from emittings only
     IN=hmm.in_s_n # inlinks from nulls only
     ENDS=hmm.end_s # end states
     B=0 # begin state
-    P=0.0 # P(seq) 
+    P=0.0 # P(seq)
     ###### START PHASE
     f[0][(B,() )]=1.0
     for s in E:
         f[0][(s,() )]=0.0
-    # from B -> N 
+    # from B -> N
     for s in N:
         f[0][(s,() )]=a(B,s)
     # from N -> N
@@ -936,7 +937,7 @@ def one_best_AK(hmm, seq, Scale=None):
             f[0][(s,() )]/=Scale[0]
 
     ###### First hypothesis i = 1
-    i=1 # 
+    i=1 #
     for s in E:
         label_s=hmm.states[s].label
         f[1][(s,(label_s,) )]=a(B,s)*eMat[s][0]
@@ -965,7 +966,7 @@ def one_best_AK(hmm, seq, Scale=None):
                 Scale[1]+=f[1].get((s,(h) ),0.0)
         for s in S:
             for h in hypSet[1]:
-                if Scale[1] > 0 and f[1].has_key((s,(h))): 
+                if Scale[1] > 0 and f[1].has_key((s,(h))):
                     f[1][(s,(h) )]/=Scale[1]
                 else:
                     f[1][(s,(h) )]=0.0
@@ -979,7 +980,7 @@ def one_best_AK(hmm, seq, Scale=None):
         for s in E:
             label_s=hmm.states[s].label
             max_s=0.0
-            hyp=() 
+            hyp=()
             for h in hypSet[prev]:
                 hsum=0.0 # init the hypothesis h
                 for t in S:
@@ -989,8 +990,8 @@ def one_best_AK(hmm, seq, Scale=None):
                 if hsum > max_s :
                     max_s=hsum
                     hyp= h+(label_s,)
-            hypSet[curr].add(hyp) 
-            f[curr][(s,hyp)]= max_s*eMat[s][i-1] # remember seq[i-1] is x_i        
+            hypSet[curr].add(hyp)
+            f[curr][(s,hyp)]= max_s*eMat[s][i-1] # remember seq[i-1] is x_i
         # E -> N . Note the i-level is the same
         # N -> N . Note the i-level is the same
         for s in N:
@@ -1014,9 +1015,9 @@ def one_best_AK(hmm, seq, Scale=None):
                     else:
                         f[curr][(s,h )]=0.0
 #        print "#",i,len(hyp)
-    ###### END PHASE 
+    ###### END PHASE
     max_hyp=0.0
-    hyp=() 
+    hyp=()
     for h in hypSet[curr]:
         v_hyp=0.0
         for s in hmm.end_s:  # emitting end states
@@ -1030,7 +1031,7 @@ def one_best_AK(hmm, seq, Scale=None):
 #        lP=__safe_log(val)+ NUM.sum(NUM.log(Scale))
 #    else:
 #        lP=__safe_log(val)
-#    
+#
 ######################################
 
 ###################################################################
@@ -1055,7 +1056,7 @@ def __expected_mat_transitions(hmm,AC,S,OE,ON,o,a,Scale):
        o Scale -> scale vector or None
     '''
     if Scale != None:
-        fT=NUM.transpose(o.f) # fT = transpose of forward matrix 
+        fT=NUM.transpose(o.f) # fT = transpose of forward matrix
         bT=NUM.transpose(o.b) # bT = transpose of backward matrix
         for s in S:
             # transitions
@@ -1075,7 +1076,7 @@ def __expected_mat_transitions(hmm,AC,S,OE,ON,o,a,Scale):
 #                    sum_curr_prot+=o.f[i][s]*a(s,t)*o.b[i][t]*o.scale[i]
                 AC[s_trpos][t_trpos]+=sum_curr_prot
     else: # !! we haven't changed yet in matrix notation as in the scale case !!
-        for s in S: 
+        for s in S:
             # transitions
             s_trpos=hmm.effective_tr_pos[s]
             for t in OE[s]: # emitting states
@@ -1105,7 +1106,7 @@ def __disc_set_param(hmm,ACc,ECc,ACf,ECf,epsilon=1.0):
        o ECc   -> matrix with the number of expected emissions (clamped phase)
        o ACf   -> matrix with the number of expected transitions (free phase)
        o ECf   -> matrix with the number of expected emissions (free phase)
-    '''   
+    '''
     # find D
     D=0.0
     delta=0.0
@@ -1125,7 +1126,7 @@ def __disc_set_param(hmm,ACc,ECc,ACf,ECf,epsilon=1.0):
         emlet=hmm.states[s].em_letters
         empos=hmm.effective_em_pos[s]
         for c in range(len(emlet)):
-	    xc=emlet[c]
+            xc=emlet[c]
             dc=ECc[empos][c]-ECf[empos][c]
             if hmm.e(s,xc) > 0:
                 delta=abs(dc)/hmm.e(s,xc)
@@ -1133,7 +1134,7 @@ def __disc_set_param(hmm,ACc,ECc,ACf,ECf,epsilon=1.0):
                 print >> sys.stderr, "zero emission for",hmm.state_names[s],xc,hmm.e(s,xc)
             if delta > D:
                 D=delta
-    
+
     # transitions
     D+=epsilon
     diffParam=0.0
@@ -1159,17 +1160,17 @@ def __disc_set_param(hmm,ACc,ECc,ACf,ECf,epsilon=1.0):
                     print >> sys.stderr, "tmp<=0 or Esc_Esf+D<=0",hmm.state_names[s],hmm.state_names[t],tmp,Esc_Esf+D
 #                else:
 #                    sys.stderr.write("TR "+hmm.states[s].name+ " "+hmm.states[t].name+" zerooo\n")
-    # emission 
+    # emission
     for s in hmm.em_updatable:
         emlet=hmm.states[s].em_letters
         empos=hmm.effective_em_pos[s]
         Esc_Esf=0.0
         for c in range(len(emlet)):
-	    xc=emlet[c]
+            xc=emlet[c]
             dc=ECc[empos][c]-ECf[empos][c]
             Esc_Esf+=dc
         for c in range(len(emlet)):
-	    xc=emlet[c]
+            xc=emlet[c]
             tmp=ECc[empos][c]-ECf[empos][c]+hmm.e(s,xc)*D
             if tmp>0 and Esc_Esf+D>0:
                 newpar=tmp/(Esc_Esf+D)
@@ -1192,8 +1193,8 @@ def __disc_Riis_set_param(hmm,ACc,ECc,ACf,ECf,epsilon=0.001):
        o ECc   -> matrix with the number of expected emissions (clamped phase)
        o ACf   -> matrix with the number of expected transitions (free phase)
        o ECf   -> matrix with the number of expected emissions (free phase)
-    '''   
-    # transitions 
+    '''
+    # transitions
     diffParam=0.0
     nparm=0
     for s in hmm.topo_order: # here we do not take advantage of tr_updatable
@@ -1209,7 +1210,7 @@ def __disc_Riis_set_param(hmm,ACc,ECc,ACf,ECf,epsilon=0.001):
                 iv+=1
             iv=0
             normfact=0.0
-            for t in hmm.out_s[s]:         
+            for t in hmm.out_s[s]:
                 xv[iv]-=hmm.a(s,t)*Esc_Esf          # compute x= Aij^C-Aij -a(s,t)*[Ei^c - Ei]
                 xv[iv]=hmm.a(s,t) * NUM.exp(epsilon*xv[iv])  # compute x= hmm.a(s,t) * exp(epsilon*x)
                 normfact+=xv[iv]
@@ -1222,7 +1223,7 @@ def __disc_Riis_set_param(hmm,ACc,ECc,ACf,ECf,epsilon=0.001):
                 hmm.set_a(s,t,newpar)
                 iv+=1
                 nparm+=1
-    # emission 
+    # emission
     for s in hmm.em_updatable:
         emlet=hmm.states[s].em_letters
         empos=hmm.effective_em_pos[s]
@@ -1230,21 +1231,21 @@ def __disc_Riis_set_param(hmm,ACc,ECc,ACf,ECf,epsilon=0.001):
         xv=NUM.array([0.0]*len(emlet))
         iv=0
         for c in range(len(emlet)):
-	    xc=emlet[c]
+            xc=emlet[c]
             xv[iv]=ECc[empos][c]-ECf[empos][c]
             Esc_Esf+=xv[iv]
             iv+=1
         iv=0
         normfact=0.0
         for c in range(len(emlet)):
-	    xc=emlet[c]
+            xc=emlet[c]
             xv[iv]-=hmm.e(s,xc)*Esc_Esf # compute x= Eic^C-Eic -e(s,c)*[Ei^c - Ei]
             xv[iv]=hmm.e(s,xc)*NUM.exp(epsilon*xv[iv]) # compute x=e(s,c)*exp(epsilon*x)
             normfact+=xv[iv]
             iv+=1
         iv=0
         for c in range(len(emlet)):
-	    xc=emlet[c]
+            xc=emlet[c]
             newpar=xv[iv]/normfact
             dpar=newpar-hmm.e(s,xc)
             diffParam+=dpar*dpar
@@ -1263,7 +1264,7 @@ def __set_param(hmm,AC,EC):
        o hmm -> Hiddn Markov Model to set
        o AC   -> matrix with the number of expected transitions
        o EC   -> matrix with the number of expected emissions
-    '''   
+    '''
     # normalize and set
     for s in hmm.topo_order: # here we do not take advantage of tr_updatable
         s_trpos=hmm.effective_tr_pos[s]
@@ -1279,7 +1280,7 @@ def __set_param(hmm,AC,EC):
                     hmm.set_a(s,t,AC[s_trpos][t_trpos]/tmp)
 #                else:
 #                    sys.stderr.write("TR "+hmm.states[s].name+ " "+hmm.states[t].name+" zerooo\n")
-        # emission 
+        # emission
     for s in hmm.em_updatable:
         emlet=hmm.states[s].em_letters
         empos=hmm.effective_em_pos[s]
@@ -1298,12 +1299,12 @@ def init_AC_EC(hmm,pseudocount):
        o hmm -> Hiddn Markov Model to set
        o pseudocount -> pseudocount to add
        => return AC,EC
-          where AC= expected number of transitions 
-                EC= expected number of emissions 
+          where AC= expected number of transitions
+                EC= expected number of emissions
     '''
     dim_em_alphabet=len(hmm.emission_alphabet)
     num_tr=len(hmm.effective_tr) # number of effective transitions (related to node_tr)
-    num_em=len(hmm.effective_em) # number of effective emissions (related to node_em) 
+    num_em=len(hmm.effective_em) # number of effective emissions (related to node_em)
 
     AC=NUM.array([[pseudocount]*num_tr]*num_tr,ARRAYFLOAT)
     EC=NUM.array([[pseudocount]*dim_em_alphabet]*num_em,ARRAYFLOAT)
@@ -1312,9 +1313,9 @@ def init_AC_EC(hmm,pseudocount):
 #####################################################
 
 def _update_Vit_AC_EC(AC,EC,hmm,seq,bp,pseudocount):
-    ''' 
+    '''
     update_Vit_AC_EC(AC,EC,hmm,best_path,pseudocount)
-       o AC ->  expected number of transitions 
+       o AC ->  expected number of transitions
        o EC -> expected number of emissions
        o hmm -> Hiddn Markov Model to set
        o seq -> sequence to model
@@ -1323,7 +1324,7 @@ def _update_Vit_AC_EC(AC,EC,hmm,seq,bp,pseudocount):
      => set the new hmm transition and emission probabilities
         using the Viterbi Learning
     '''
-    # init transitions and emissions counts 
+    # init transitions and emissions counts
 
 
     for i in range(1,len(bp)):  # the first is begin and does not emit
@@ -1332,7 +1333,7 @@ def _update_Vit_AC_EC(AC,EC,hmm,seq,bp,pseudocount):
         AC[p_pos][c_pos]+=1 #update transition
         if bp[i] in hmm.emits:
            empos=hmm.effective_em_pos[bp[i]]
-           if(type(seq[0]) != type('String')): 
+           if(type(seq[0]) != type('String')):
                k=0
                for c in hmm.emission_alphabet:
                    EC[empos][k]+=seq[i-1][k]*hmm.e(c_pos,c)
@@ -1341,29 +1342,29 @@ def _update_Vit_AC_EC(AC,EC,hmm,seq,bp,pseudocount):
                c=hmm.emission_alphabet.index(seq[i-1])
                EC[empos][c]+=1
 
-    return 
-     
+    return
+
 
 #===============
 def __symbol_update_AC_EC(AC,EC,hmm,o,Scale,pseudocount):
-    ''' 
+    '''
     __symbol_update_AC_EC(AC,EC,hmm,o,Scale,pseudocount)
-       o AC ->  expected number of transitions 
+       o AC ->  expected number of transitions
        o EC -> expected number of emissions
        o hmm -> Hiddn Markov Model to set
        o o -> trainable object
-       o Scale -> scale vector or None 
+       o Scale -> scale vector or None
        o pseudocount -> pseudocount to add default = 0.0
      => set the new hmm transition and emission probabilities
         using the classical way (Durbin et al. 1998)
     '''
-    # init transitions and emissions counts 
+    # init transitions and emissions counts
     E=hmm.emits # the list of all emitting states
     S=hmm.topo_order # the list of all state including B
     OE=hmm.out_s_e # emitting outlinks
     ON=hmm.out_s_n # silent outlinks
     OS=hmm.out_s # outlinks
-    
+
     # transitions
     # Please note that we are invoking using the      hmm methods
     #                                                  \      \
@@ -1376,7 +1377,7 @@ def __symbol_update_AC_EC(AC,EC,hmm,o,Scale,pseudocount):
             sum_curr_prot=0.0
             for i in range(1,o.len+1): # from position 2 of seq to the last
                 if(o.seq[i-1] == c):
-		    if(Scale != None):
+                    if(Scale != None):
                         sum_curr_prot+=o.f[i][s]*o.b[i][s]*o.scale[i]
                     else:
                         sum_curr_prot+=o.f[i][s]*o.b[i][s]
@@ -1388,13 +1389,13 @@ def __symbol_update_AC_EC(AC,EC,hmm,o,Scale,pseudocount):
 
 ###############################
 def __vec_update_AC_EC(AC,EC,hmm,o,Scale,pseudocount):
-    ''' 
+    '''
     __vec_update_AC_EC(AC,EC,hmm,o,Scale,pseudocount)
-       o AC ->  expected number of transitions 
+       o AC ->  expected number of transitions
        o EC -> expected number of emissions
        o hmm -> Hiddn Markov Model to set
        o o -> trainable object
-       o Scale -> scale vector or None 
+       o Scale -> scale vector or None
        o pseudocount -> pseudocount to add default = 0.0
      => set the new hmm transition and emission probabilities
         using the classical way (Durbin et al. 1998)
@@ -1408,7 +1409,7 @@ def __vec_update_AC_EC(AC,EC,hmm,o,Scale,pseudocount):
 
     # transitions
     # Please note that we are invoking using the      hmm methods
-    #                                                     \    \ 
+    #                                                     \    \
     __expected_mat_transitions(hmm,AC,S,OE,ON,o,hmm.a,Scale)
     if(Scale != None):
         fT=NUM.transpose(o.f) # fT = transpose of forward matrix
@@ -1426,7 +1427,7 @@ def __vec_update_AC_EC(AC,EC,hmm,o,Scale,pseudocount):
 #                for i in range(1,o.len+1): # from position 1 of seq to the last
 #                    sum_curr_prot+=o.f[i][s]*o.b[i][s]*o.scale[i]*o.seq[i-1][c]
 #                    EC[empos][c]+=sum_curr_prot
-    else: 
+    else:
         fT=NUM.transpose(o.f) # fT = transpose of forward matrix
         bT=NUM.transpose(o.b) # bT = transpose of backward matrix
         seqT=NUM.transpose(o.seq) # seqT = transpose of the sequnce vector
@@ -1471,7 +1472,7 @@ def gradLogP(hmm,seq,Scale=None,labels=None,multiplyEmission=None):
     '''
     dim_em_alphabet=len(hmm.emission_alphabet)
     E=hmm.emits # the list of all emitting states
-    num_emit=len(E) 
+    num_emit=len(E)
     EC=NUM.array([[0.0]*dim_em_alphabet]*num_emit,ARRAYFLOAT)
     # COmpute forward and backward
     if(labels):
@@ -1503,9 +1504,9 @@ def gradLogP(hmm,seq,Scale=None,labels=None,multiplyEmission=None):
                         if(seq[i-1] == c):
                             sum_curr_prot+=f[i][s]*b[i][s]*Scale[i]
                     EC[empos][cpos]+=sum_curr_prot
-        else: 
+        else:
             for s in E:
-                empos=s - 1  
+                empos=s - 1
                 for c in hmm.emission_alphabet:
                     cpos=hmm.emission_alphabet.index(c)
                     sum_curr_prot=0.0
@@ -1514,7 +1515,7 @@ def gradLogP(hmm,seq,Scale=None,labels=None,multiplyEmission=None):
                             sum_curr_prot+=f[i][s]*b[i][s]
                     prob=NUM.exp(lp)
                     EC[empos][cpos]+=sum_curr_prot/prob
-      
+
     # return dictionay
     grad={}
     if multiplyEmission:
@@ -1523,7 +1524,7 @@ def gradLogP(hmm,seq,Scale=None,labels=None,multiplyEmission=None):
             grad[sname]={}
             sumc=NUM.sum(EC[s-1])
             for i in range(dim_em_alphabet):
-                c=hmm.emission_alphabet[i] 
+                c=hmm.emission_alphabet[i]
                 grad[sname][c]=EC[s-1][i] - sumc*hmm.e(s,c)
     else:
         for s in E:
@@ -1531,19 +1532,19 @@ def gradLogP(hmm,seq,Scale=None,labels=None,multiplyEmission=None):
             grad[sname]={}
             sumc=NUM.sum(EC[s-1])
             for i in range(dim_em_alphabet):
-                c=hmm.emission_alphabet[i] 
+                c=hmm.emission_alphabet[i]
                 grad[sname][c]=EC[s-1][i]/hmm.e(s,c) - sumc
     return(grad)
 #######################################################
 
 def Baum_Welch(hmm,set_of_trobj,Scale=None,labels=None,maxcycles=10000,tolerance=DEF.small_positive,pseudoC=0.0,verbose=None):
-    ''' 
+    '''
     Baum_Welch(hmm,set_of_trobj,Scale=None,labels=None,maxcycles=10000,tolerance=DEF.small_positive,pc=0,verbose=None)
         o hmm           -> the hmm to train
         o set_of_trobj  -> list of trainable objects
         o Scale=None    -> scaling (if != from None scaling is used
         o labels=None   -> if labels is != None labels of the trainable objects are used
-        o maxcycles=10000 -> maximum number of training cycles 
+        o maxcycles=10000 -> maximum number of training cycles
         o tolerance -> we stop the learning if log(ProbNew/Probold) < tolerance
         o verbose -> print on the screen the probability every cycles
         o pseudoC -> pseudocount to add
@@ -1555,28 +1556,28 @@ def Baum_Welch(hmm,set_of_trobj,Scale=None,labels=None,maxcycles=10000,tolerance
     # test if we are dealing with sequence of symbols or sequence of vectors
     if(type(set_of_trobj[0].seq[0]) != type('String') ): # vectors
         update_AC_EC=__vec_update_AC_EC
-        if(verbose): 
-            print "GIGI vector training"
+        if(verbose):
+            print("GIGI vector training")
             if labels:
-                print "learning with labels "
+                print("learning with labels ")
     else: # symbols
         update_AC_EC=__symbol_update_AC_EC
-        if(verbose): 
-            print "Classical sequence training"
+        if(verbose):
+            print("Classical sequence training")
             if labels:
-                print "learning with labels "
+                print("learning with labels ")
     number_of_seqs=len(set_of_trobj)
     # Start
     lPtot=DEF.big_negative
     cyc=0
     delta=tolerance*2
     while cyc < maxcycles and delta > tolerance:
-        # compute forward, backward, probability and scale    
+        # compute forward, backward, probability and scale
         lPcurr=0.0
         AC,EC=init_AC_EC(hmm,pseudoC)
         for i in range(len(set_of_trobj)):
             if verbose:
-                print "object",i
+                print("object",i)
             o=set_of_trobj[i]
             if(labels):
                 (f,b,eMat,Scale,lp)=for_back_mat(hmm, o.seq, Scale, labels=o.labels)
@@ -1595,8 +1596,8 @@ def Baum_Welch(hmm,set_of_trobj,Scale=None,labels=None,maxcycles=10000,tolerance
         lPcurr/=number_of_seqs
         delta=(lPtot-lPcurr)/lPtot # delta change sign sincs it is divided by a lPtot<0
         if verbose:
-            print "CYC",cyc
-            print "log(Prob_old) ",lPtot,"log(Prob_new) ",lPcurr,"Diff ",delta
+            print("CYC",cyc)
+            print("log(Prob_old) ",lPtot,"log(Prob_new) ",lPcurr,"Diff ",delta)
         # in the case of the generalised Expectation Maximiximisation
         # it is not guaranteed that Pcurr always >= Ptot
         if(delta>=0):
@@ -1610,12 +1611,12 @@ def Baum_Welch(hmm,set_of_trobj,Scale=None,labels=None,maxcycles=10000,tolerance
 #######################################################
 
 def discriminative(hmm,set_of_trobj,Scale=None,maxcycles=1000,tolerance=DEF.small_positive,pseudoC=0.0,Riis=None,eta=0.001,verbose=None):
-    ''' 
+    '''
     discriminative(hmm,set_of_trobj,Scale=None,maxcycles=1000,tolerance=DEF.small_positive,pc=0,Riis=None,verbose=None
         o hmm           -> the hmm to train
         o set_of_trobj  -> list of trainable objects
         o Scale=None    -> scaling (if != from None scaling is used
-        o maxcycles=10000 -> maximum number of training cycles 
+        o maxcycles=10000 -> maximum number of training cycles
         o tolerance -> we stop the learning if log(ProbNew/Probold) < tolerance
         o pseudoC -> pseudocount to add
         o Riis=None     -> Krogh update as default. If  Riis!= None, the exponential Riis update is used
@@ -1633,19 +1634,19 @@ def discriminative(hmm,set_of_trobj,Scale=None,maxcycles=1000,tolerance=DEF.smal
     # test if we are dealing with sequence of symbols or sequence of vectors
     if(type(set_of_trobj[0].seq[0]) != type('String') ): # vectors
         update_AC_EC=__vec_update_AC_EC
-        if(verbose): 
-            print "GIGI vector training"
+        if(verbose):
+            print("GIGI vector training")
     else: # symbols
         update_AC_EC=__symbol_update_AC_EC
-        if(verbose): 
-            print "Classical sequence training"
+        if(verbose):
+            print("Classical sequence training")
     number_of_seqs=len(set_of_trobj)
     # Start
     lPtot=DEF.big_negative
     cyc=0
     rmsd=logLike=tolerance+1
     while cyc < maxcycles and rmsd > tolerance:
-        # compute forward, backward, probability and scale    
+        # compute forward, backward, probability and scale
         lPcurrc=0.0
         lPcurrf=0.0
         ACc,ECc=init_AC_EC(hmm,pseudoC)
@@ -1675,30 +1676,30 @@ def discriminative(hmm,set_of_trobj,Scale=None,maxcycles=1000,tolerance=DEF.smal
             o.eMat=None
             o.scale=None
             if verbose:
-                print "object",i,"log clamp",lpc,"log free",lpf
+                print("object",i,"log clamp",lpc,"log free",lpf)
         lPcurrf/=number_of_seqs
         lPcurrc/=number_of_seqs
         logLike=(lPcurrf-lPcurrc) # delta change sign sincs it is divided by a lPtot<0
         # in the case of the generalised Expectation Maximiximisation
         # it is not guaranteed that Pcurr always >= Ptot
-	rmsd=set_param(hmm,ACc,ECc,ACf,ECf,eta)
+        rmsd=set_param(hmm,ACc,ECc,ACf,ECf,eta)
         hmm.set_mA()
         hmm.set_mE()
-        print "CYC",cyc
-        print "log(Prob_clamped) ",lPcurrc,"log(Prob_free) ",lPcurrf,"Diff ",logLike, "RMSD parameters= ",rmsd
+        print("CYC",cyc)
+        print("log(Prob_clamped) ",lPcurrc,"log(Prob_free) ",lPcurrf,"Diff ",logLike, "RMSD parameters= ",rmsd)
         # hmm.write_for_humans('hmm-mod-'+str(cyc))
         cyc=cyc+1
     return (logLike,cyc)
-            
+
 #######################################################
 
 def viterbi_learning(hmm,set_of_trobj,labels=None,maxcycles=1000,tolerance=DEF.small_positive,pseudoC=0.0,verbose=None):
-    ''' 
+    '''
     viterbi_learning(hmm,set_of_trobj,maxcycles=1000,tolerance=DEF.small_positive,pc=0,verbose=None
         o hmm           -> the hmm to train
         o set_of_trobj  -> list of trainable objects
         o labels=None   -> if labels is != None labels of the trainable objects are used
-        o maxcycles=10000 -> maximum number of training cycles 
+        o maxcycles=10000 -> maximum number of training cycles
         o tolerance -> we stop the learning if log(ProbNew/Probold) < tolerance
         o verbose -> print on the screen the probability every cycles
         o pseudoC -> pseudocount to add
@@ -1709,27 +1710,27 @@ def viterbi_learning(hmm,set_of_trobj,labels=None,maxcycles=1000,tolerance=DEF.s
     '''
     # test if we are dealing with sequence of symbols or sequence of vectors
     if(type(set_of_trobj[0].seq[0]) != type('String') ): # vectors
-        if(verbose): 
-            print "GIGI vector training"
+        if(verbose):
+            print("GIGI vector training")
             if labels:
-                print "learning with labels "
+                print("learning with labels ")
     else: # symbols
-        if(verbose): 
-            print "Classical sequence training"
+        if(verbose):
+            print("Classical sequence training")
             if labels:
-                print "learning with labels "
+                print("learning with labels ")
     number_of_seqs=len(set_of_trobj)
     # Start
     lPtot=DEF.big_negative
     cyc=0
     delta=tolerance*2
     while cyc < maxcycles and delta > tolerance:
-        # compute forward, backward, probability and scale    
+        # compute forward, backward, probability and scale
         lPcurr=0.0
         AC,EC=init_AC_EC(hmm,pseudoC)
         for i in range(len(set_of_trobj)):
             if verbose:
-                print "object",i
+                print("object",i)
             o=set_of_trobj[i]
             if(labels):
                 (best_path,lp,lpath)=_viterbi(hmm, o.seq, labels=o.labels)
@@ -1742,8 +1743,8 @@ def viterbi_learning(hmm,set_of_trobj,labels=None,maxcycles=1000,tolerance=DEF.s
         lPcurr/=number_of_seqs
         delta=(lPtot-lPcurr)/lPtot # delta change sign sincs it is divided by a lPtot<0
         if verbose:
-            print "CYC",cyc
-            print "log(Prob_old) ",lPtot,"log(Prob_new) ",lPcurr,"Diff ",delta
+            print("CYC",cyc)
+            print("log(Prob_old) ",lPtot,"log(Prob_new) ",lPcurr,"Diff ",delta)
         # in the case of the generalised Expectation Maximiximisation
         # it is not guaranteed that Pcurr always >= Ptot
         if(delta>=0):
