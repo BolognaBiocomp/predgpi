@@ -151,22 +151,22 @@ def printVal(sequence,svm,hmmmod):
 def main():
     DESC = "PredGPI: Prediction of GPI-anchors in proteins"
     parser = argparse.ArgumentParser(description = DESC, prog = "predgpi.py")
-    parser.add_argument("-f", "--fasta", help = "The input sequences in FASTA format", dest = "fasta", required = True)
-    parser.add_argument("-o", "--output", help = "The output file name", dest="outf", required = "True")
-    parser.add_argument("-c", "--conservative", help = "Conservative omega (opt)", dest="conservative", action = "store_true")
-    parser.add_argument("-m", "--outfmt", help = "The output format: json or gff3 (default)", choices=['json', 'gff3'], required = False, default = "gff3")
+    parser.add_argument("-i", "--i-json", help = "The input sequences in JSON format", dest = "i_json", required = True)
+    parser.add_argument("-o", "--output", help = "The output JSON file name", dest="outf", required = "True")
     ns = parser.parse_args()
 
-    sequences = readFasta(ns.fasta)
-    if ns.conservative:
-        hmmmod=HMM_IO.get_hmm(os.path.join(dirbin, 'PHMM.TOT.ss.mod_CSDGN'))
-    else:
-        hmmmod=HMM_IO.get_hmm(os.path.join(dirbin, 'PHMM.TOT.ss.mod'))
+    #sequences = readFasta(ns.fasta)
+    ifs = open(ns.i_json)
+    input_json = json.load(ifs)
+    ifs.close()
+    hmmmod=HMM_IO.get_hmm(os.path.join(dirbin, 'PHMM.TOT.ss.mod'))
     svm=SVMLike.getSVMLight(os.path.join(dirbin, 'MOD'))
     ofs = open(ns.outf, 'w')
     protein_jsons = []
-    for name in sequences:
-        seq=sequences[name]
+    for i_json in input_json:
+        name = i_json['accession']
+        seq = i_json['sequence']['sequence']
+        #seq=sequences[name]
         lprob,cut,svmout,fitFPR=predGpipe(seq,svm,hmmmod)
         if fitFPR <= 0.01:
             gpi = True
@@ -181,13 +181,10 @@ def main():
             gpi = False
             cleavage = "-"
             prob = 1.0
-        if ns.outfmt == "gff3":
-            utils.write_gff_output(name, seq, ofs, gpi, cleavage, prob)
-        else:
-            acc_json = utils.get_json_output(name, seq, gpi, cleavage, prob)
-            protein_jsons.append(acc_json)
-    if ns.outfmt == "json":
-        json.dump(protein_jsons, ofs, indent=5)
+
+        acc_json = utils.get_json_output(i_json, gpi, cleavage, prob)
+        protein_jsons.append(acc_json)
+    json.dump(protein_jsons, ofs, indent=5)
     ofs.close()
 
 

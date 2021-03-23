@@ -7,14 +7,9 @@ def write_gff_output(acc, sequence, output_file, gpi, cleavage, prob):
         print(acc, "PredGPI", "Chain", 1, len(sequence), prob, ".", ".",
         "evidence=ECO:0000256",file = output_file, sep = "\t")
 
-def get_json_output(acc, sequence, gpi, cleavage, prob):
-    acc_json = {'accession': acc, 'features': []}
-    acc_json['sequence'] = {
-                              "length": len(sequence),
-                              "sequence": sequence
-                           }
+def get_json_output(i_json, gpi, cleavage, prob):
     if gpi:
-        acc_json['features'].append({
+        i_json['features'].append({
             "type": "LIPID",
             "category": "PTM",
             "description": "GPI-anchor",
@@ -32,4 +27,4 @@ def get_json_output(acc, sequence, gpi, cleavage, prob):
               }
             ]
         })
-    return acc_json
+    return i_json
