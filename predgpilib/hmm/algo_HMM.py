@@ -561,7 +561,6 @@ def _viterbi(hmm, seq, labels=None):
         else:
             logProbPath.insert(0, DEF.big_negative)
         pback=ptmp
-        print(pback)
 
     return(best_path,bestval,logProbPath)
 ######################################
