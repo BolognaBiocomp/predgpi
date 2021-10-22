@@ -552,7 +552,7 @@ def _viterbi(hmm, seq, labels=None):
     logProbPath=[]
     best_path=[]
     i=L-1
-    while i >= 0 and (pback != B).all():
+    while i >= 0 and pback != B:
         best_path.insert(0,pback)
         ptmp=bkt[i][pback]
         if pback in hmm.emits:
@@ -561,6 +561,7 @@ def _viterbi(hmm, seq, labels=None):
         else:
             logProbPath.insert(0, DEF.big_negative)
         pback=ptmp
+        print(pback)
 
     return(best_path,bestval,logProbPath)
 ######################################
