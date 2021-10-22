@@ -170,6 +170,7 @@ def main():
         seq_t=seq.replace("U","C")
         seq_t=seq_t.replace("Z","A")
         seq_t=seq_t.replace("B","A")
+        seq_t=seq_t.replace("X","A")
         if len(seq) > 40:
             lprob,cut,svmout,fitFPR=predGpipe(seq_t,svm,hmmmod)
         else:
