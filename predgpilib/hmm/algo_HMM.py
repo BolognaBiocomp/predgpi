@@ -531,6 +531,7 @@ def _viterbi(hmm, seq, labels=None):
                 ltmp=ln_a(t,s)+lf[i][t]
                 if(lf[i][s]<ltmp):
                     lf[i][s]=ltmp
+                    print("IE null: ",t)
                     bkt[i][s]=t
         # N -> N . Note the i-level is the same
         for s in N:
