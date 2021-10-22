@@ -538,6 +538,7 @@ def _viterbi(hmm, seq, labels=None):
                 ltmp=ln_a(t,s)+lf[i][t]
                 if(lf[i][s]<ltmp):
                     lf[i][s]=ltmp
+                    print("IN null: ",t)
                     bkt[i][s]=t
     ###### END PHASE
     bestval=DEF.big_negative
