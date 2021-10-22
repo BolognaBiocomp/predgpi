@@ -167,9 +167,10 @@ def main():
     protein_jsons = []
     for name in sequences:
         seq=sequences[name]
-        seq=seq.replace("U","C")
+        seq_t=seq.replace("U","C")
+        seq_t.seq.replace("Z","A")
         if len(seq) > 40:
-            lprob,cut,svmout,fitFPR=predGpipe(seq,svm,hmmmod)
+            lprob,cut,svmout,fitFPR=predGpipe(seq_t,svm,hmmmod)
         else:
             fitFPR = 1
         if fitFPR <= 0.01:
