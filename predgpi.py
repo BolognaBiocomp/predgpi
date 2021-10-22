@@ -168,7 +168,7 @@ def main():
     for name in sequences:
         seq=sequences[name]
         seq_t=seq.replace("U","C")
-        seq_t.seq.replace("Z","A")
+        seq_t=seq_t.replace("Z","A")
         if len(seq) > 40:
             lprob,cut,svmout,fitFPR=predGpipe(seq_t,svm,hmmmod)
         else:
