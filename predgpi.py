@@ -167,7 +167,10 @@ def main():
     protein_jsons = []
     for name in sequences:
         seq=sequences[name]
-        lprob,cut,svmout,fitFPR=predGpipe(seq,svm,hmmmod)
+        if len(seq) > 40:
+            lprob,cut,svmout,fitFPR=predGpipe(seq,svm,hmmmod)
+        else:
+            fitFPR = 1
         if fitFPR <= 0.01:
             gpi = True
             cleavage = len(seq) - cut
