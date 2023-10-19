@@ -10,7 +10,7 @@ except:
 import numpy as NUM
 
 ARRAYFLOAT=NUM.float64
-ARRAYINT=NUM.int
+ARRAYINT=NUM.int32
 
 
 def _getRand(randint,values,names,norm=10000):
